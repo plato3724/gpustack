@@ -245,8 +245,14 @@ def test_subject_from_request_tolerates_missing_state():
 
 @pytest.fixture(autouse=True)
 def isolated_counters(monkeypatch):
+    # Decision tests stay on a private monotonic counter. SQL persistence is
+    # covered in test_quota_persistence.py; leaving it on here would treat
+    # monotonic stamps as unix time.
     monkeypatch.setattr(quota_engine, "GLOBAL_COUNTER", SlidingWindowCounter())
+    monkeypatch.setattr(quota_engine, "_persistence_enabled", False)
+    monkeypatch.setattr(quota_engine, "_hydrated", False)
     quota_engine._alert_dedupe.clear()
+    quota_engine._synced.clear()
 
 
 @pytest.mark.asyncio
