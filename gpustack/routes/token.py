@@ -3,6 +3,8 @@ from datetime import timedelta
 from typing import Optional, Annotated, Tuple
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi import APIRouter, Request, Response, Depends
+from gpustack.api.quotas import quota_guard
+from gpustack.server.quota_engine import load_rules
 from gpustack.api.exceptions import (
     NotFoundException,
     ForbiddenException,
@@ -137,7 +139,8 @@ async def server_auth(
     cached = request.headers.get(AUTH_CACHE_HEADER)
     request_model = request.headers.get("x-higress-llm-model")
     request_conn = request.headers.get(GATEWAY_DOWNSTREAM_CONN_HEADER, "")
-    if cached and request_model:
+    quota_enabled = bool(await load_rules())
+    if cached and request_model and not quota_enabled:
         try:
             data = jwt_manager.decode_jwt_data(cached)
             # This is where an unresolved caller's marker is honoured on its
@@ -234,6 +237,9 @@ async def server_auth(
             raise ForbiddenException(
                 message=f"Not allowed to access model {model_name}"
             )
+    denial = await _gateway_quota_denial(request, session, model_name, quota_enabled)
+    if denial is not None:
+        return denial
     # No ``token`` claim: the upstream credential is held statically by
     # ai-proxy's ``apiTokens`` and no longer travels per request.
     #
@@ -280,6 +286,15 @@ async def server_auth(
         # pass and falls back to a credential ai-proxy has already replaced.
         headers[GATEWAY_ASSERTED_KEY_REF_HEADER] = str(api_key.id)
     return Response(status_code=200, headers=headers)
+
+
+async def _gateway_quota_denial(request, session, model_name, enabled):
+    if not enabled:
+        return None
+    targets = await ModelRouteService(session=session).resolve_route_targets(model_name)
+    return await quota_guard(
+        request, model_ids={t.model_id for t in targets if t.model_id is not None}
+    )
 
 
 async def worker_auth(

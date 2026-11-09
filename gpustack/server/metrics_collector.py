@@ -794,6 +794,7 @@ async def store_usage_metrics(
                 session, api_keys, all_metrics, users
             )
 
+            quota_usage = []
             for metric in metrics:
                 if not _validate_usage_metric(
                     metric,
@@ -816,6 +817,15 @@ async def store_usage_metrics(
                 )
                 prompt_tokens, completion_tokens = _resolve_usage_tokens(
                     metric, model_by_id.get(metric.model_id)
+                )
+                quota_usage.append(
+                    {
+                        "total_tokens": prompt_tokens + completion_tokens,
+                        "user_id": snapshot.get("user_id"),
+                        "api_key_id": snapshot.get("api_key_id"),
+                        "organization_id": snapshot.get("consumer_principal_id"),
+                        "model_id": metric.model_id,
+                    }
                 )
                 metric_date, _ = _resolve_metric_datetime(metric)
                 # Consumer display-name + kind snapshot (ModelUsage-only; kept
@@ -921,6 +931,10 @@ async def store_usage_metrics(
                 )
 
             await session.commit()
+            from gpustack.server.quota_engine import accrue_usage
+
+            for usage in quota_usage:
+                await accrue_usage(**usage)
         except Exception as e:
             logger.exception(f"Error storing gateway metrics: {e}")
             await session.rollback()

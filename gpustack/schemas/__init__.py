@@ -436,3 +436,6 @@ __all__ = [
     "GPUInstancePublic",
     "GPUInstancesPublic",
 ]
+
+from gpustack.schemas.system_settings import SystemSetting  # noqa: F401
+from gpustack.schemas.quota_rules import QuotaRule  # noqa: F401
