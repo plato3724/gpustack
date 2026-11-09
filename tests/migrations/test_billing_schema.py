@@ -9,6 +9,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.schema import CreateTable
 
 from gpustack.schemas.quota_rules import QuotaRule
+from gpustack.schemas.quota_usage import QuotaUsageSample
 from gpustack.schemas.system_settings import SystemSetting
 
 
@@ -17,6 +18,7 @@ from gpustack.schemas.system_settings import SystemSetting
     [
         ("2026_09_28_2310-c9e3f0d5b8a2_system_settings.py", SystemSetting),
         ("2026_09_28_2340-d0f4a1e6c9b3_quota_rules.py", QuotaRule),
+        ("2026_11_09_1500-e1b6c2d4a8f0_quota_usage_samples.py", QuotaUsageSample),
     ],
 )
 def test_billing_tables_match_migrations_and_compile_on_supported_dialects(

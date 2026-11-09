@@ -57,8 +57,9 @@ class QuotaRule(SQLModel, BaseModelMixin, table=True):
 
     kind: QuotaRuleKind = Field(sa_column=Column(sa.String(32), nullable=False))
     # Window length in seconds. Budgets use long windows (86400, 2592000);
-    # rates short ones (60). No calendar alignment — trailing windows keep
-    # the engine stateless w.r.t. timezones.
+    # rates short ones (60). No calendar alignment — trailing windows are
+    # not pinned to a timezone. Usage inside the window is stored as
+    # per-second samples (see quota_usage_samples), not as a single total.
     window_seconds: int = Field(nullable=False)
     # Requests (request_rate) or tokens (the other two) allowed per window.
     limit_value: int = Field(sa_column=Column(sa.BigInteger, nullable=False))
