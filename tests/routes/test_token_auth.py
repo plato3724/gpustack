@@ -83,6 +83,14 @@ def _api_key(**overrides):
     return SimpleNamespace(**fields)
 
 
+@pytest.fixture(autouse=True)
+def no_quota_rules(monkeypatch):
+    async def load_rules():
+        return []
+
+    monkeypatch.setattr("gpustack.routes.token.load_rules", load_rules)
+
+
 @pytest.fixture
 def route_policy(monkeypatch):
     """Stub the route lookup; the returned setter picks the access policy."""

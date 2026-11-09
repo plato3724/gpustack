@@ -13,6 +13,7 @@ from sqlmodel import or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.datastructures import UploadFile
 
+from gpustack.api.quotas import quota_guard
 from gpustack.api.exceptions import (
     BadRequestException,
     NotFoundException,
@@ -280,6 +281,9 @@ async def proxy_request_by_model(
                 message=f"Worker with ID {lookup_worker_id} not found",
                 is_openai_exception=True,
             )
+    denial = await quota_guard(request)
+    if denial is not None:
+        return denial
     extra_headers = {
         router_header_key: (
             f"{rank_endpoint.registry_name}.static"

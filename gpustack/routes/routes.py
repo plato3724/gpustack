@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, Request
 from gpustack.routes import (
     api_keys,
     auth,
+    billing,
+    quota_rules,
     cache_providers,
     cacerts,
     cache_service_instances,
@@ -439,6 +441,8 @@ tenant_routers = model_routers + [
 
 # Platform-only routers — admin can manage globally; non-admin gets 403.
 admin_routers = [
+    {"router": billing.router, "prefix": "/billing", "tags": ["Billing"]},
+    {"router": quota_rules.router, "prefix": "/quota-rules", "tags": ["Quota Rules"]},
     {"router": users.router, "prefix": "/users", "tags": ["Users"]},
     {
         "router": organizations.router,
